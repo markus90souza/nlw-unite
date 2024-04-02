@@ -6,10 +6,8 @@ import { Roboto_400Regular, Roboto_500Medium, Roboto_700Bold} from '@expo-google
 import { Loading } from "@/components/loading";
 import { StatusBar } from "react-native";
 
-
-
 const Layout = () => {
-
+  
   const [fontsLoaded] = useFonts({
     Roboto_400Regular, Roboto_500Medium, Roboto_700Bold
   })
