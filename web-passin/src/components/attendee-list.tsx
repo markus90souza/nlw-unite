@@ -18,8 +18,42 @@ import {
 } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
+import { ChangeEvent, useState } from 'react'
+import { attendees } from '@/data/attendees'
+
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+
+import 'dayjs/locale/pt-br'
+
+dayjs.extend(relativeTime)
+dayjs.locale('pt-br')
 
 export const AttendeeList = () => {
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+
+  const TOTAL_PAGES = Math.ceil(attendees.length / 10)
+
+  const goToNextPage = () => {
+    setPage(page + 1)
+  }
+
+  const goToFirstPage = () => {
+    setPage(1)
+  }
+
+  const goToLastPage = () => {
+    setPage(TOTAL_PAGES)
+  }
+  const goToPreviousPage = () => {
+    setPage(page - 1)
+  }
+
+  const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value)
+  }
+
   return (
     <section>
       <div className="flex gap-4 items-center">
@@ -29,10 +63,12 @@ export const AttendeeList = () => {
           <Search className="size-4 text-emerald-300" />
 
           <Input
+            onChange={handleSearch}
             placeholder="Buscar participantes"
             className="bg-transparent p-0 border-none ring-offset-0"
           />
         </div>
+        {search}
       </div>
 
       <div className="mt-6 border border-white/10 rounded-lg">
@@ -57,25 +93,29 @@ export const AttendeeList = () => {
           </TableHeader>
 
           <TableBody>
-            {Array.from({ length: 10 }).map((_, i) => (
-              <TableRow key={i}>
+            {attendees.slice((page - 1) * 10, page * 10).map((attendee) => (
+              <TableRow key={attendee.id}>
                 <TableCell>
                   <Checkbox className="border-white/10 size-5 rounded" />
                 </TableCell>
-                <TableCell className="text-sm text-zinc-300">12345</TableCell>
+                <TableCell className="text-sm text-zinc-300">
+                  {`#${attendee.id}`}
+                </TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1">
                     <span className="font-semibold text-white">
-                      Marcos de souza
+                      {attendee.name}
                     </span>
-                    <span className="text-sm text-zinc-300">m@email.com</span>
+                    <span className="text-sm text-zinc-300">
+                      {attendee.email}
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell className="text-sm text-zinc-300">
-                  7 dias atrás
+                  {dayjs().to(attendee.createdAt)}
                 </TableCell>
                 <TableCell className="text-sm text-zinc-300">
-                  12 dias atrás
+                  {dayjs().to(attendee.checkedInAt)}
                 </TableCell>
                 <TableCell>
                   <Button
@@ -91,12 +131,18 @@ export const AttendeeList = () => {
 
           <TableFooter className="bg-transparent">
             <TableRow>
-              <TableHead colSpan={3}>Mostrando 30 de 300 itens</TableHead>
+              <TableHead colSpan={3}>
+                Mostrando 30 de {attendees.length} itens
+              </TableHead>
               <TableHead className="text-right" colSpan={3}>
                 <div className="inline-flex items-center gap-8">
-                  <span>Página 1 de 10</span>
+                  <span>
+                    Página {page} de {TOTAL_PAGES}
+                  </span>
                   <div className="flex gap-1.5">
                     <Button
+                      disabled={page === 1}
+                      onClick={goToFirstPage}
                       size={'icon'}
                       className=" h-8 w-8 bg-white/10 border border-white/10 hover:bg-zinc-950 rounded-lg"
                     >
@@ -104,6 +150,8 @@ export const AttendeeList = () => {
                     </Button>
 
                     <Button
+                      disabled={page === 1}
+                      onClick={goToPreviousPage}
                       size={'icon'}
                       className=" h-8 w-8 bg-white/10 border border-white/10 hover:bg-zinc-950 rounded-lg"
                     >
@@ -111,6 +159,8 @@ export const AttendeeList = () => {
                     </Button>
 
                     <Button
+                      disabled={page === TOTAL_PAGES}
+                      onClick={goToNextPage}
                       size={'icon'}
                       className="h-8 w-8 bg-white/10 border border-white/10 hover:bg-zinc-950 rounded-lg"
                     >
@@ -118,6 +168,8 @@ export const AttendeeList = () => {
                     </Button>
 
                     <Button
+                      disabled={page === TOTAL_PAGES}
+                      onClick={goToLastPage}
                       size={'icon'}
                       className=" h-8 w-8 bg-white/10 border border-white/10 hover:bg-zinc-950 rounded-lg"
                     >
