@@ -3,12 +3,15 @@ import { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import { generateSlug } from '../utils/generate-slug'
 import { db } from '../libs/prisma'
+import { BadRequest } from './_errors/bad-request'
 
 export const createEvent = async (app: FastifyInstance) => {
   app.withTypeProvider<ZodTypeProvider>().post(
     '/events',
     {
       schema: {
+        summary: 'Create an event',
+        tags: ['Events'],
         body: z.object({
           title: z.string().min(4),
           details: z.string().nullable(),
@@ -31,7 +34,7 @@ export const createEvent = async (app: FastifyInstance) => {
       })
 
       if (eventWithSameSlug !== null) {
-        throw new Error('Já existe um evento com esse titulo')
+        throw new BadRequest('Já existe um evento com esse titulo')
       }
 
       const event = await db.event.create({

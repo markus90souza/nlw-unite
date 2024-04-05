@@ -2,33 +2,28 @@ import { FastifyInstance } from 'fastify'
 import { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import { db } from '../libs/prisma'
+import { BadRequest } from './_errors/bad-request'
 
 export const getAttendeeBadge = async (app: FastifyInstance) => {
   app.withTypeProvider<ZodTypeProvider>().get(
     '/attendees/:attendeeId/badge',
     {
       schema: {
+        summary: 'Create an event',
+        tags: ['Attendees'],
         params: z.object({
           attendeeId: z.string().cuid(),
         }),
 
         response: {
-          200: {
-            event: z.object({
-              id: z.string().cuid(),
-              title: z.string(),
-              slug: z.string(),
-              details: z.string().nullable(),
-              maximumAttendees: z.number().int().positive().nullable(),
-              attendeesAmmount: z.number(),
-              attendees: z.array(
-                z.object({
-                  name: z.string(),
-                  email: z.string().email(),
-                }),
-              ),
+          200: z.object({
+            badge: z.object({
+              name: z.string(),
+              email: z.string(),
+              eventTitle: z.string(),
+              checkInUrl: z.string().url(),
             }),
-          },
+          }),
         },
       },
     },
@@ -39,13 +34,7 @@ export const getAttendeeBadge = async (app: FastifyInstance) => {
         select: {
           name: true,
           email: true,
-          eventId: true,
-          event: {
-            select: {
-              title: true,
-              id: true,
-            },
-          },
+          event: true,
         },
         where: {
           id: attendeeId,
@@ -53,19 +42,20 @@ export const getAttendeeBadge = async (app: FastifyInstance) => {
       })
 
       if (attendee === null) {
-        throw new Error('Nenhum ingresso encontrado')
+        throw new BadRequest('Nenhum ingresso encontrado')
       }
 
+      const baseUrl = `${request.protocol}://${request.hostname}`
+
+      const checkInUrl = new URL(`/attendees/${attendeeId}/check-in`, baseUrl)
+
       return reply.status(201).send({
-        attendee,
-        // : {
-        //   id: event.id,
-        //   title: event.title,
-        //   slug: event.slug,
-        //   details: event.details,
-        //   attendeesAmmount: event._count.attendees,
-        //   attendees: event.attendees,
-        // },
+        badge: {
+          name: attendee.name,
+          email: attendee.email,
+          eventTitle: attendee.event.title,
+          checkInUrl: checkInUrl.toString(),
+        },
       })
     },
   )
