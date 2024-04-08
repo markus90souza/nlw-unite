@@ -18,6 +18,7 @@ export const getAttendeeBadge = async (app: FastifyInstance) => {
         response: {
           200: z.object({
             badge: z.object({
+              id: z.string().cuid(),
               name: z.string(),
               email: z.string(),
               eventTitle: z.string(),
@@ -32,6 +33,7 @@ export const getAttendeeBadge = async (app: FastifyInstance) => {
 
       const attendee = await db.attendee.findUnique({
         select: {
+          id: true,
           name: true,
           email: true,
           event: true,
@@ -51,6 +53,7 @@ export const getAttendeeBadge = async (app: FastifyInstance) => {
 
       return reply.status(201).send({
         badge: {
+          id: attendee.id,
           name: attendee.name,
           email: attendee.email,
           eventTitle: attendee.event.title,

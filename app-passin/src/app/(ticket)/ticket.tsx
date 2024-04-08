@@ -1,92 +1,139 @@
-import { FC, useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, Alert, Modal } from 'react-native';
-import { TicketHeader } from './components/ticket-header';
-import { TicketCredential } from './components/ticket-credential';
-import { FontAwesome } from '@expo/vector-icons';
-import { colors } from '@/styles/colors';
-import { Button, QRCode } from '@/components';
+import { useState } from "react"
+import {
+  Text,
+  View,
+  Alert,
+  Modal,
+  Share,
+  StatusBar,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native"
+import { MotiView } from "moti"
+import { FontAwesome } from "@expo/vector-icons"
+import * as ImagePicker from "expo-image-picker"
+import { Redirect } from "expo-router"
 
-import * as ImagePicker from 'expo-image-picker'
+import { useBadgeStore } from "@/store/use-credential-store"
 
-const Ticket: FC = () => {
+import { colors } from "@/styles/colors"
 
-  const [avatarUrl, setAvatarUrl] = useState("")
-  const [expandedQRCode, setExpandedQRCode] = useState(false)
+import { TicketCredential } from "./components/ticket-credential"
+import { Button } from "@/components/button"
+import { QRCode } from "@/components/qrcode"
+import { TicketHeader } from "./components/ticket-header"
 
-  const handleSelectAvatarImage = async () => {
+export default function Ticket() {
+  const [expandQRCode, setExpandQRCode] = useState(false)
+
+  const badgeStore = useBadgeStore()
+
+  async function handleShare() {
     try {
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect:[4,4]
-    })
-
-    if(result.assets){
-      console.log(result.assets)
-      setAvatarUrl(result.assets[0].uri)
-    }
-      
+      if (badgeStore.data?.checkInUrl) {
+        await Share.share({
+          message: badgeStore.data.checkInUrl,
+        })
+      }
     } catch (error) {
       console.log(error)
-      Alert.alert('Foto', 'Não foi possivel selecionar a imagem')
+      Alert.alert("Compartilhar", "Não foi possível compartilhar.")
     }
   }
 
-  const toggleExpandedQRCode = () => {
-    setExpandedQRCode( state => !state)
+  async function handleSelectImage() {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 4],
+      })
+
+      if (result.assets) {
+        badgeStore.updateAvatar(result.assets[0].uri)
+      }
+    } catch (error) {
+      console.log(error)
+      Alert.alert("Foto", "Não foi possível selecionar a imagem.")
+    }
+  }
+
+  if (!badgeStore.data?.checkInUrl) {
+    return <Redirect href="/" />
   }
 
   return (
-  <View className='flex-1 bg-green-500' >
-    <TicketHeader title='Minha Crendencia' />
-    <ScrollView 
-      showsVerticalScrollIndicator={false}
-      className='-mt-28 -z-10' 
-      contentContainerClassName='px-8 pb-4'
-    >
+    <View className="flex-1 bg-green-500">
+      <StatusBar barStyle="light-content" />
+      <TicketHeader title="Minha Credencial" />
 
-      <TicketCredential
-        avatarUrl={avatarUrl}
-        onChangeAvatar={handleSelectAvatarImage}
-        onExpandedQRCode={toggleExpandedQRCode}
-      />
+      <ScrollView
+        className="-mt-28 -z-10"
+        contentContainerClassName="px-8 pb-8"
+        showsVerticalScrollIndicator={false}
+      >
+        <TicketCredential
+          data={badgeStore.data}
+          onChangeAvatar={handleSelectImage}
+          onExpandedQRCode={() => setExpandQRCode(true)}
+        />
 
-      <FontAwesome 
-        name='angle-double-down' 
-        size={24} color={colors.green['200']} 
-        className='self-center my-6'
-      />
+        <MotiView
+          from={{
+            translateY: 0,
+          }}
+          animate={{
+            translateY: 10,
+          }}
+          transition={{
+            loop: true,
+            type: "timing",
+            duration: 700,
+          }}
+        >
+          <FontAwesome
+            name="angle-double-down"
+            color={colors.gray[300]}
+            size={24}
+            className="self-center my-6"
+          />
+        </MotiView>
 
-      <View className='w-full mt-4 mb-10 gap-6'>
-        <View className='w-full gap-1'>
-          <Text className='font-bold text-white text-2xl '>Compartilhar credencial</Text>
-          <Text className='text-white font-regular text-base'>
-            Mostre ao mundo que você vai participar do Unite Summit!
-          </Text>
-        </View>
-        <Button title='Compartilhar'/> 
-      </View>
+        <Text className="text-white font-bold text-2xl mt-4">
+          Compartilhar credencial
+        </Text>
 
-      <TouchableOpacity activeOpacity={0.7}> 
-        <Text className='text-white text-center font-bold text-base'>Remover Ingresso</Text>
-      </TouchableOpacity>
+        <Text className="text-white font-regular text-base mt-1 mb-6">
+          Mostre ao mundo que você vai participar do evento{" "}
+          {badgeStore.data.eventTitle}!
+        </Text>
 
-    </ScrollView>
+        <Button title="Compartilhar" onPress={handleShare} />
 
-    <Modal visible={expandedQRCode} statusBarTranslucent>
-
-      <View className='flex-1 bg-green-500 items-center justify-center'>
-        <TouchableOpacity activeOpacity={0.7} onPress={toggleExpandedQRCode}>
-          <QRCode value='teste' size={300} />
-          <Text className='text-center mt-10 text-sm font-bold text-orange-500'>
-            Fechar
+        <TouchableOpacity
+          className="mt-10"
+          activeOpacity={0.7}
+          onPress={() => badgeStore.remove()}
+        >
+          <Text className="text-base text-white font-bold text-center">
+            Remover Ingresso
           </Text>
         </TouchableOpacity>
-      </View>
-    </Modal>
-  </View>
+      </ScrollView>
+
+      <Modal visible={expandQRCode} statusBarTranslucent>
+        <View className="flex-1 bg-green-500 items-center justify-center">
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setExpandQRCode(false)}
+          >
+            <QRCode value="teste" size={300} />
+            <Text className="font-body text-orange-500 text-sm mt-10 text-center">
+              Fechar QRCode
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+    </View>
   )
 }
-
-export default Ticket;
